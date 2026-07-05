@@ -1,11 +1,20 @@
 package lv.bootcamp.shelter.task5;
 
+import lv.bootcamp.shelter.model.Animal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Task 5: Nested test classes for CSV parsing
@@ -39,23 +48,31 @@ class AnimalCsvParserTest {
         @Test
         @DisplayName("parses a complete row into an Animal")
         void shouldParseCompleteRow() {
-            // TODO: Call parser.parseRow("Buddy,Dog,3,true,2026-01-15")
-            // TODO: Assert the result isPresent()
-            // TODO: Assert the animal's name is "Buddy", species is "Dog", age is 3, etc.
+            Optional<Animal> result = parser.parseRow("Buddy,Dog,3,true,2026-01-15");
+            assertTrue(result.isPresent());
+            assertEquals("Buddy", result.get().getName());
+            assertEquals("Dog", result.get().getSpecies());
+            assertEquals(3, result.get().getAge());
+            assertEquals(true, result.get().isVaccinated());
+            assertEquals(LocalDate.of(2026, 1, 15),result.get().getIntakeDate());
         }
 
         @Test
         @DisplayName("trims whitespace from fields")
         void shouldTrimWhitespace() {
-            // TODO: Call parser.parseRow("  Buddy , Dog , 3 , true , 2026-01-15 ")
-            // TODO: Assert the parsed name is "Buddy" (trimmed)
+            Optional<Animal> result = parser.parseRow("  Buddy , Dog , 3 , true , 2026-01-15 ");
+
+            assertTrue(result.isPresent());
+            assertEquals("Buddy", result.get().getName());
         }
 
         @Test
         @DisplayName("parses vaccinated=false correctly")
         void shouldParseFalseVaccination() {
-            // TODO: Parse a row with "false" for vaccinated
-            // TODO: Assert animal.isVaccinated() == false
+            Optional<Animal> result = parser.parseRow("Buddy,Dog,3,false,2026-01-15");
+
+            assertTrue(result.isPresent());
+            assertFalse(result.get().isVaccinated());
         }
     }
 
@@ -66,50 +83,54 @@ class AnimalCsvParserTest {
         @Test
         @DisplayName("returns empty for null input")
         void shouldReturnEmptyForNull() {
-            // TODO: Call parser.parseRow(null)
-            // TODO: Assert result isEmpty()
+            Optional<Animal> result = parser.parseRow(null);
+
+            assertTrue(result.isEmpty());
         }
 
         @Test
         @DisplayName("returns empty for blank input")
         void shouldReturnEmptyForBlank() {
-            // TODO: Call parser.parseRow("   ")
-            // TODO: Assert result isEmpty()
+            Optional<Animal> result = parser.parseRow("   ");
+
+            assertTrue(result.isEmpty());
         }
 
         @Test
         @DisplayName("returns empty when row has fewer than 5 fields")
         void shouldReturnEmptyForTooFewFields() {
-            // TODO: Call parser.parseRow("Buddy,Dog,3")
-            // TODO: Assert result isEmpty()
+            Optional<Animal> result = parser.parseRow("Buddy,Dog,3");
+
+            assertTrue(result.isEmpty());
         }
 
         @Test
         @DisplayName("returns empty when name is missing")
         void shouldReturnEmptyForMissingName() {
-            // TODO: Call parser.parseRow(",Dog,3,true,2026-01-15")
-            // TODO: Assert result isEmpty()
+            Optional<Animal> result = parser.parseRow(",Dog,3,true,2026-01-15");
+
+            assertTrue(result.isEmpty());
         }
 
         @Test
         @DisplayName("returns empty when age is not a number")
         void shouldReturnEmptyForBadAge() {
-            // TODO: Call parser.parseRow("Buddy,Dog,old,true,2026-01-15")
-            // TODO: Assert result isEmpty()
+            Optional<Animal> result = parser.parseRow("Buddy,Dog,old,true,2026-01-15");
+            assertTrue(result.isEmpty());
         }
 
         @Test
         @DisplayName("returns empty when age is negative")
         void shouldReturnEmptyForNegativeAge() {
-            // TODO: Call parser.parseRow("Buddy,Dog,-1,true,2026-01-15")
-            // TODO: Assert result isEmpty()
+            Optional<Animal> result = parser.parseRow("Buddy,Dog,-1,true,2026-01-15");
+            assertTrue(result.isEmpty());
         }
 
         @Test
         @DisplayName("returns empty when date is invalid")
         void shouldReturnEmptyForBadDate() {
-            // TODO: Call parser.parseRow("Buddy,Dog,3,true,not-a-date")
-            // TODO: Assert result isEmpty()
+            Optional<Animal> result = parser.parseRow("Buddy,Dog,3,true,not-a-date");
+            assertTrue(result.isEmpty());
         }
     }
 
@@ -120,15 +141,18 @@ class AnimalCsvParserTest {
         @Test
         @DisplayName("handles vaccinated field as any non-true string → false")
         void shouldTreatNonTrueAsFalse() {
-            // TODO: Parse a row with vaccinated="maybe"
-            // TODO: Assert isVaccinated() returns false (Boolean.parseBoolean behavior)
+            Optional<Animal> result = parser.parseRow("Buddy,Dog,3,maybe,2026-01-15");
+            assertTrue(result.isPresent());
+            assertFalse(result.get().isVaccinated());
         }
 
         @Test
         @DisplayName("handles age 0 as valid")
         void shouldAcceptAgeZero() {
-            // TODO: Parse a row with age=0
-            // TODO: Assert result isPresent() and age is 0
+            Optional<Animal> result = parser.parseRow("Buddy,Dog,0,true,2026-01-15");
+
+            assertTrue(result.isPresent());
+            assertEquals(0, result.get().getAge());
         }
     }
 
@@ -141,28 +165,56 @@ class AnimalCsvParserTest {
         @Test
         @DisplayName("parses valid rows and counts skipped rows")
         void shouldParseFileAndCountSkipped() throws IOException {
-            // TODO: Create a temp file with a header + 3 valid rows + 1 malformed row
-            //   Hint: Path tempFile = Files.createTempFile("test-intake", ".csv");
-            //         Files.writeString(tempFile, content, StandardCharsets.UTF_8);
-            // TODO: Call parser.parseFile(tempFile)
-            // TODO: Assert result.animals() has size 3
-            // TODO: Assert result.skippedRows() == 1
-            // TODO: Clean up: Files.deleteIfExists(tempFile)
+            Path tempFile = Files.createTempFile("test-intake", ".csv");
+
+            String content = """
+            name,species,age,vaccinated,intakeDate
+            Buddy,Dog,3,true,2026-01-15
+            Luna,Cat,2,true,2026-01-16
+            Max,Dog,5,false,2026-01-17
+            Bad,Dog,old,true,2026-01-18
+            """;
+
+            Files.writeString(tempFile, content, StandardCharsets.UTF_8);
+
+            try {
+                AnimalCsvParser.ParseResult result = parser.parseFile(tempFile);
+
+                assertEquals(3, result.animals().size());
+                assertEquals(1, result.skippedRows());
+            } finally {
+                Files.deleteIfExists(tempFile);
+            }
         }
 
         @Test
         @DisplayName("returns empty result for file with only a header")
         void shouldReturnEmptyForHeaderOnly() throws IOException {
-            // TODO: Create a temp file with just "name,species,age,vaccinated,intakeDate"
-            // TODO: Call parser.parseFile(tempFile)
-            // TODO: Assert result.animals() is empty and skippedRows == 0
+            Path tempFile = Files.createTempFile("test-intake", ".csv");
+
+            Files.writeString(
+                    tempFile,
+                    "name,species,age,vaccinated,intakeDate\n",
+                    StandardCharsets.UTF_8
+            );
+
+            try {
+                AnimalCsvParser.ParseResult result = parser.parseFile(tempFile);
+
+                assertTrue(result.animals().isEmpty());
+                assertEquals(0, result.skippedRows());
+            } finally {
+                Files.deleteIfExists(tempFile);
+            }
         }
 
         @Test
         @DisplayName("throws IOException for non-existent file")
         void shouldThrowForMissingFile() {
-            // TODO: Call parser.parseFile(Path.of("does-not-exist.csv"))
-            // TODO: Assert it throws IOException
+            assertThrows(
+                    IOException.class,
+                    () -> parser.parseFile(Path.of("does-not-exist.csv"))
+            );
         }
     }
 }
