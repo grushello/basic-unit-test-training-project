@@ -1,0 +1,6 @@
+Testing with coverage uncovered that AnimalType class was not hit by tests at all. The class works with strings, so it should be tested for null, blank input and case-sensitive inputs.
+Animal equals, hashCode, and toString are not tested, so object comparison, hash behavior, and string output are not verified.
+3 out of 4 methods in AnimalSorter are not tested for null inputs.
+parseFile() method in AnimalCsvParser is not tested for null header.
+
+Everything mentioned above should be tested, as bugs are common in such code.
