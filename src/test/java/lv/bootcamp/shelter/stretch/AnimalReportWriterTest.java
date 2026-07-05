@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Stretch goal: Testing file output
@@ -33,28 +34,69 @@ class AnimalReportWriterTest {
     @Test
     @DisplayName("writes report file that contains total count")
     void shouldWriteTotalCount() throws IOException {
-        // TODO: Create a list of 3 animals
-        // TODO: Create a temp file: Path output = Files.createTempFile("report-test", ".txt");
-        // TODO: Call writer.writeReport(animals, output)
-        // TODO: Read the file content: String content = Files.readString(output, StandardCharsets.UTF_8);
-        // TODO: Assert content contains "Total animals: 3"
-        // TODO: Clean up: Files.deleteIfExists(output)
+        List<Animal> animals = List.of(
+                new Animal("Buddy", "Dog", 3, true, LocalDate.of(2026, 1, 10)),
+                new Animal("Luna", "Cat", 2, true, LocalDate.of(2026, 1, 11)),
+                new Animal("Max", "Dog", 5, false, LocalDate.of(2026, 1, 12))
+        );
+        Path output = Files.createTempFile("report-test", ".txt");
+
+        try {
+            writer.writeReport(animals, output);
+
+            String content = Files.readString(output, StandardCharsets.UTF_8);
+
+            assertTrue(content.contains("Total animals: 3"));
+        } finally {
+            Files.deleteIfExists(output);
+        }
     }
 
     @Test
     @DisplayName("writes per-species breakdown in alphabetical order")
     void shouldWriteSpeciesBreakdown() throws IOException {
-        // TODO: Create animals of different species (Dog, Cat)
-        // TODO: Write report to temp file
-        // TODO: Read content and verify "Cat:" appears before "Dog:" (alphabetical)
-        // TODO: Verify vaccinated counts are correct
+        List<Animal> animals = List.of(
+                new Animal("Buddy", "Dog", 3, true, LocalDate.of(2026, 1, 10)),
+                new Animal("Max", "Dog", 5, true, LocalDate.of(2026, 1, 11)),
+                new Animal("Luna", "Cat", 2, false, LocalDate.of(2026, 1, 12)),
+                new Animal("Bella", "Cat", 1, false, LocalDate.of(2026, 1, 5))
+        );
+
+        Path output = Files.createTempFile("report-test", ".txt");
+
+        try {
+            writer.writeReport(animals, output);
+
+            String content = Files.readString(output, StandardCharsets.UTF_8);
+
+            assertTrue(content.indexOf("Cat:") < content.indexOf("Dog:"));
+
+            assertTrue(content.contains("2 vaccinated"));
+        } finally {
+            Files.deleteIfExists(output);
+        }
     }
 
     @Test
     @DisplayName("writes oldest animal per species")
     void shouldWriteOldestPerSpecies() throws IOException {
-        // TODO: Create animals where Max (age 5) is the oldest Dog
-        // TODO: Write report to temp file
-        // TODO: Read content and verify it contains "Dog: Max (age 5)"
-    }
+            List<Animal> animals = List.of(
+                    new Animal("Buddy", "Dog", 3, true, LocalDate.of(2026, 1, 10)),
+                    new Animal("Max", "Dog", 5, false, LocalDate.of(2026, 1, 11)),
+                    new Animal("Luna", "Cat", 2, true, LocalDate.of(2026, 1, 12)),
+                    new Animal("Bella", "Cat", 1, true, LocalDate.of(2026, 1, 5))
+            );
+
+            Path output = Files.createTempFile("report-test", ".txt");
+
+            try {
+                writer.writeReport(animals, output);
+
+                String content = Files.readString(output, StandardCharsets.UTF_8);
+
+                assertTrue(content.contains("Dog: Max (age 5)"));
+            } finally {
+                Files.deleteIfExists(output);
+            }
+        }
 }
